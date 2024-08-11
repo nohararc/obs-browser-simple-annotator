@@ -1,2 +1,2 @@
 # README
-[サンプル画像](./sample.png)
+![サンプル画像](./sample.png)
