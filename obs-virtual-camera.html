@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Camera Viewer with Drawing (1920x1080)</title>
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+        }
+        #container {
+            position: relative;
+            width: 100%;
+            height: 100%;
+        }
+        #cameraVideo {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+        #drawCanvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+    </style>
+</head>
+<body>
+    <div id="container">
+        <video id="cameraVideo" autoplay playsinline></video>
+        <canvas id="drawCanvas"></canvas>
+    </div>
+
+    <script>
+        const video = document.getElementById('cameraVideo');
+        const canvas = document.getElementById('drawCanvas');
+        const ctx = canvas.getContext('2d');
+        let isDrawing = false;
+        let isRightClick = false;
+        let stream = null;
+
+        canvas.width = 1920;
+        canvas.height = 1080;
+
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        async function startCamera() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+                video.srcObject = stream;
+            } catch (error) {
+                console.error('カメラの開始に失敗しました:', error);
+            }
+        }
+
+        window.addEventListener('load', startCamera);
+
+        // 右クリックメニューを無効化
+        document.addEventListener('contextmenu', e => e.preventDefault());
+
+        canvas.addEventListener('mousedown', startDrawing);
+        canvas.addEventListener('mousemove', draw);
+        canvas.addEventListener('mouseup', stopDrawing);
+        canvas.addEventListener('mouseout', stopDrawing);
+
+        function startDrawing(e) {
+            isDrawing = true;
+            isRightClick = e.button === 2;  // 右クリックの場合は2
+            draw(e);
+        }
+
+        function draw(e) {
+            if (!isDrawing) return;
+            const rect = canvas.getBoundingClientRect();
+            const scaleX = canvas.width / rect.width;
+            const scaleY = canvas.height / rect.height;
+            const x = (e.clientX - rect.left) * scaleX;
+            const y = (e.clientY - rect.top) * scaleY;
+
+            ctx.lineWidth = 5;
+            ctx.lineCap = 'round';
+            ctx.strokeStyle = isRightClick ? 'blue' : 'red';  // 右クリックの場合は青、それ以外は赤
+
+            // 影の設定
+            ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';  // 影の色（半透明の黒）
+            ctx.shadowBlur = 5;  // ぼかしの範囲
+            ctx.shadowOffsetX = 2;  // X軸方向のオフセット
+            ctx.shadowOffsetY = 2;  // Y軸方向のオフセット
+
+
+            ctx.lineTo(x, y);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(x, y);
+        }
+
+        function stopDrawing() {
+            isDrawing = false;
+            ctx.beginPath();
+
+            // 描画終了時に影の設定をリセット
+            ctx.shadowColor = 'rgba(0, 0, 0, 0)';
+            ctx.shadowBlur = 0;
+            ctx.shadowOffsetX = 0;
+            ctx.shadowOffsetY = 0;
+        }
+
+        function clearCanvas() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+        }
+
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'c' || e.key === 'C') {
+                clearCanvas();
+            }
+        });
+    </script>
+</body>
+</html>
