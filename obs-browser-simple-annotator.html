@@ -25,6 +25,94 @@
     }
     #confirmed-canvas { z-index: 1; }
     #preview-canvas   { z-index: 2; pointer-events: all; cursor: crosshair; }
+
+    /* パレットUI */
+    #palette {
+      position: fixed;
+      left: 16px;
+      top: 50%;
+      transform: translateY(-50%);
+      z-index: 100;
+      background: rgba(20, 20, 20, 0.88);
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 14px;
+      padding: 10px 7px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      user-select: none;
+    }
+    #palette-handle {
+      color: #555;
+      font-size: 14px;
+      cursor: grab;
+      padding: 2px 0;
+      line-height: 1;
+    }
+    #palette-handle:active { cursor: grabbing; }
+    .palette-section-label {
+      color: #555;
+      font-size: 9px;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      font-family: sans-serif;
+    }
+    .palette-divider {
+      width: 26px;
+      height: 1px;
+      background: rgba(255,255,255,0.12);
+    }
+    .tool-btn, .action-btn {
+      width: 34px;
+      height: 34px;
+      border-radius: 8px;
+      border: 2px solid transparent;
+      background: transparent;
+      color: white;
+      font-size: 16px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: serif;
+      transition: background 0.1s;
+    }
+    .tool-btn:hover, .action-btn:hover { background: rgba(255,255,255,0.1); }
+    .tool-btn.active { border-color: rgba(255,255,255,0.5); background: rgba(255,255,255,0.15); }
+    .color-btn {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      border: 2px solid transparent;
+      cursor: pointer;
+      transition: transform 0.1s, border-color 0.1s;
+    }
+    .color-btn:hover { transform: scale(1.15); }
+    .color-btn.active { border-color: white; transform: scale(1.15); }
+    #text-input {
+      position: fixed;
+      display: none;
+      background: transparent;
+      border: none;
+      border-bottom: 2px solid currentColor;
+      outline: none;
+      font-size: 20px;
+      font-family: sans-serif;
+      color: white;
+      min-width: 100px;
+      z-index: 200;
+    }
+    #shortcut-hint {
+      position: fixed;
+      bottom: 12px;
+      right: 12px;
+      color: rgba(255,255,255,0.3);
+      font-size: 10px;
+      font-family: monospace;
+      pointer-events: none;
+      z-index: 50;
+    }
   </style>
 </head>
 <body>
@@ -32,7 +120,34 @@
     <canvas id="confirmed-canvas"></canvas>
     <canvas id="preview-canvas"></canvas>
   </div>
-  <!-- パレットとショートカットヒントはTask 2で追加 -->
+
+  <div id="palette">
+    <div id="palette-handle" title="ドラッグで移動">⠿</div>
+
+    <div class="palette-section-label">ツール</div>
+    <button class="tool-btn active" data-tool="pen"    title="ペン (P)">✏️</button>
+    <button class="tool-btn"        data-tool="eraser" title="消しゴム (E)">🧹</button>
+    <button class="tool-btn"        data-tool="arrow"  title="矢印 (A)">➡️</button>
+    <button class="tool-btn"        data-tool="text"   title="テキスト (T)">T</button>
+
+    <div class="palette-divider"></div>
+    <div class="palette-section-label">色</div>
+    <button class="color-btn active" data-color="#e74c3c" style="background:#e74c3c" title="赤 (1)"></button>
+    <button class="color-btn"        data-color="#3498db" style="background:#3498db" title="青 (2)"></button>
+    <button class="color-btn"        data-color="#2ecc71" style="background:#2ecc71" title="緑 (3)"></button>
+    <button class="color-btn"        data-color="#f1c40f" style="background:#f1c40f" title="黄 (4)"></button>
+    <button class="color-btn"        data-color="#ffffff" style="background:#ffffff" title="白 (5)"></button>
+
+    <div class="palette-divider"></div>
+    <button class="action-btn" id="btn-undo"  title="元に戻す (Z)">↩️</button>
+    <button class="action-btn" id="btn-clear" title="全消去 (C)">🗑️</button>
+  </div>
+
+  <input id="text-input" type="text" autocomplete="off" spellcheck="false">
+
+  <div id="shortcut-hint">
+    1-5:色 &nbsp;|&nbsp; P:ペン &nbsp;|&nbsp; E:消しゴム &nbsp;|&nbsp; A:矢印 &nbsp;|&nbsp; T:テキスト &nbsp;|&nbsp; Z:戻す &nbsp;|&nbsp; C:消去
+  </div>
   <script>
     // canvas のサイズをウィンドウに合わせる
     const confirmedCanvas = document.getElementById('confirmed-canvas');
@@ -51,6 +166,89 @@
     }
     window.addEventListener('resize', resizeCanvases);
     resizeCanvases();
+
+    // === 状態管理 ===
+    const COLORS = ['#e74c3c', '#3498db', '#2ecc71', '#f1c40f', '#ffffff'];
+    let activeTool  = 'pen';
+    let activeColor = COLORS[0];
+    let undoStack   = [];
+    const UNDO_LIMIT = 20;
+
+    function pushUndo() {
+      undoStack.push(
+        confirmedCtx.getImageData(0, 0, confirmedCanvas.width, confirmedCanvas.height)
+      );
+      if (undoStack.length > UNDO_LIMIT) undoStack.shift();
+    }
+
+    function undo() {
+      if (undoStack.length === 0) return;
+      confirmedCtx.putImageData(undoStack.pop(), 0, 0);
+    }
+
+    function clearAll() {
+      undoStack = [];
+      confirmedCtx.clearRect(0, 0, confirmedCanvas.width, confirmedCanvas.height);
+      previewCtx.clearRect(0, 0, previewCanvas.width, previewCanvas.height);
+    }
+
+    // === ツール・カラー切り替えのイベントリスナー ===
+    document.querySelectorAll('.tool-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        activeTool = btn.dataset.tool;
+        document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+      });
+    });
+
+    document.querySelectorAll('.color-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        activeColor = btn.dataset.color;
+        document.querySelectorAll('.color-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+      });
+    });
+
+    document.getElementById('btn-undo').addEventListener('click', undo);
+    document.getElementById('btn-clear').addEventListener('click', clearAll);
+
+    // === パレットのドラッグ移動 + localStorage位置保存 ===
+    const palette = document.getElementById('palette');
+    const handle  = document.getElementById('palette-handle');
+    const STORAGE_KEY = 'obs-annotator-palette-pos';
+
+    try {
+      const saved = JSON.parse(localStorage.getItem(STORAGE_KEY));
+      if (saved) {
+        palette.style.left      = saved.left;
+        palette.style.top       = saved.top;
+        palette.style.transform = 'none';
+      }
+    } catch (_) {}
+
+    let dragOffset = { x: 0, y: 0 };
+    handle.addEventListener('mousedown', e => {
+      const rect = palette.getBoundingClientRect();
+      dragOffset = { x: e.clientX - rect.left, y: e.clientY - rect.top };
+      palette.style.transform = 'none';
+      window.addEventListener('mousemove', onDrag);
+      window.addEventListener('mouseup',   stopDrag, { once: true });
+    });
+
+    function onDrag(e) {
+      palette.style.left = (e.clientX - dragOffset.x) + 'px';
+      palette.style.top  = (e.clientY - dragOffset.y) + 'px';
+    }
+
+    function stopDrag() {
+      window.removeEventListener('mousemove', onDrag);
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify({
+          left: palette.style.left,
+          top:  palette.style.top,
+        }));
+      } catch (_) {}
+    }
   </script>
 </body>
 </html>
