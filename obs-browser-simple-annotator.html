@@ -297,19 +297,20 @@
       lastY = pos.y;
     });
 
-    previewCanvas.addEventListener('mouseup',    stopStroke);
-    previewCanvas.addEventListener('mouseleave', stopStroke);
-    function stopStroke() { isDrawing = false; }
-
+    previewCanvas.addEventListener('mouseleave', () => { isDrawing = false; });
     previewCanvas.addEventListener('mouseup', e => {
-      if (!isDrawing || activeTool !== 'arrow') return;
-      const pos = getCanvasPos(e);
-      isDrawing = false;
-      previewCtx.clearRect(0, 0, previewCanvas.width, previewCanvas.height);
-      // 終点が始点と同じなら無視（クリックのみ）
-      if (Math.abs(pos.x - lastX) < 3 && Math.abs(pos.y - lastY) < 3) return;
-      pushUndo();
-      drawArrow(confirmedCtx, lastX, lastY, pos.x, pos.y, activeColor);
+      if (!isDrawing) return;
+      if (activeTool === 'arrow') {
+        const pos = getCanvasPos(e);
+        isDrawing = false;
+        previewCtx.clearRect(0, 0, previewCanvas.width, previewCanvas.height);
+        // 終点が始点と同じなら無視（クリックのみ）
+        if (Math.abs(pos.x - lastX) < 3 && Math.abs(pos.y - lastY) < 3) return;
+        pushUndo();
+        drawArrow(confirmedCtx, lastX, lastY, pos.x, pos.y, activeColor);
+      } else {
+        isDrawing = false;
+      }
     });
 
     function drawStroke(x1, y1, x2, y2) {
