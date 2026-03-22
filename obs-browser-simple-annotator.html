@@ -273,7 +273,7 @@
 
     function showSourceSelector() {
       const sel = document.getElementById('source-selector');
-      if (sel.style.display !== 'none') return; // 多重表示防止
+      if (sel.style.display === 'flex') return; // 多重表示防止
       document.getElementById('source-error').textContent = '';
       sel.style.display = 'flex';
     }
@@ -610,6 +610,8 @@
     document.addEventListener('keydown', e => {
       // テキスト入力中はショートカットを無視
       if (document.activeElement === document.getElementById('text-input')) return;
+      // ソース選択ダイアログ表示中はショートカットを無視
+      if (document.getElementById('source-selector').style.display !== 'none') return;
 
       const toolMap = { 'p': 'pen', 'e': 'eraser', 'a': 'arrow', 't': 'text' };
       const colorMap = { '1': 0, '2': 1, '3': 2, '4': 3, '5': 4 };
