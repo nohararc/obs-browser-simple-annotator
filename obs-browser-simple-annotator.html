@@ -285,6 +285,10 @@
       }
       if (activeTool === 'text') {
         const input = document.getElementById('text-input');
+
+        // 前のセッションが残っていれば先にクリーンアップ
+        if (input._cleanupText) { input._cleanupText(); }
+
         input.style.display = 'block';
         input.style.left    = e.clientX + 'px';
         input.style.top     = (e.clientY - 20) + 'px';
@@ -298,11 +302,15 @@
             drawText(previewCtx, input.value, pos.x, pos.y, activeColor);
           }
         }
-        input.addEventListener('input', onTextInput);
-
+        function handleKeydown(ke) {
+          if (ke.key === 'Enter')  { commitText(); }
+          if (ke.key === 'Escape') { cancelText(); }
+        }
         function cleanupText() {
           input.removeEventListener('input',   onTextInput);
           input.removeEventListener('blur',    cancelText);
+          input.removeEventListener('keydown', handleKeydown);
+          input._cleanupText = null;
         }
         function commitText() {
           previewCtx.clearRect(0, 0, previewCanvas.width, previewCanvas.height);
@@ -321,11 +329,10 @@
           cleanupText();
         }
 
-        input.addEventListener('blur', cancelText);
-        input.addEventListener('keydown', ke => {
-          if (ke.key === 'Enter')  { commitText(); }
-          if (ke.key === 'Escape') { cancelText(); }
-        }, { once: true });
+        input._cleanupText = cleanupText;
+        input.addEventListener('input',   onTextInput);
+        input.addEventListener('blur',    cancelText);
+        input.addEventListener('keydown', handleKeydown);
       }
     });
 
@@ -342,7 +349,10 @@
       lastY = pos.y;
     });
 
-    previewCanvas.addEventListener('mouseleave', () => { isDrawing = false; });
+    previewCanvas.addEventListener('mouseleave', () => {
+      isDrawing = false;
+      previewCtx.clearRect(0, 0, previewCanvas.width, previewCanvas.height);
+    });
     previewCanvas.addEventListener('mouseup', e => {
       if (!isDrawing) return;
       if (activeTool === 'arrow') {
