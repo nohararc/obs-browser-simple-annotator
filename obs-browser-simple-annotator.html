@@ -163,6 +163,7 @@
       confirmedCanvas.height = h;
       previewCanvas.width    = w;
       previewCanvas.height   = h;
+      if (typeof undoStack !== 'undefined') undoStack = [];
     }
     window.addEventListener('resize', resizeCanvases);
     resizeCanvases();
@@ -463,6 +464,9 @@
         clearAll();
       }
     });
+
+    // === 右クリックメニューの無効化 ===
+    document.addEventListener('contextmenu', e => e.preventDefault());
   </script>
 </body>
 </html>
