@@ -239,6 +239,90 @@
     let undoStack   = [];
     const UNDO_LIMIT = 20;
 
+    // === 映像ソース管理 ===
+    let currentStream = null;
+
+    function stopCurrentStream() {
+      if (!currentStream) return;
+      const track = currentStream.getVideoTracks()[0];
+      if (track) track.removeEventListener('ended', onStreamEnded);
+      currentStream.getVideoTracks().forEach(t => t.stop());
+      currentStream = null;
+    }
+
+    function onStreamEnded() {
+      currentStream = null;
+      const video = document.getElementById('video-bg');
+      video.srcObject = null;
+      video.style.display = 'none';
+    }
+
+    function applyStream(stream) {
+      stopCurrentStream();
+      currentStream = stream;
+      const track = stream.getVideoTracks()[0];
+      if (track) track.addEventListener('ended', onStreamEnded);
+      const video = document.getElementById('video-bg');
+      video.srcObject = stream;
+      video.style.display = 'block';
+    }
+
+    function hideSourceSelector() {
+      document.getElementById('source-selector').style.display = 'none';
+    }
+
+    function showSourceSelector() {
+      const sel = document.getElementById('source-selector');
+      if (sel.style.display !== 'none') return; // 多重表示防止
+      document.getElementById('source-error').textContent = '';
+      sel.style.display = 'flex';
+    }
+
+    document.getElementById('btn-src-camera').addEventListener('click', async () => {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+        applyStream(stream);
+        hideSourceSelector();
+      } catch (err) {
+        if (err.name === 'NotAllowedError') {
+          // OBS環境またはユーザー拒否: 自動クローズ（設計上の割り切り）
+          hideSourceSelector();
+        } else {
+          document.getElementById('source-error').textContent =
+            'カメラが見つかりませんでした: ' + err.message;
+        }
+      }
+    });
+
+    document.getElementById('btn-src-display').addEventListener('click', async () => {
+      if (typeof navigator.mediaDevices.getDisplayMedia === 'undefined') {
+        document.getElementById('source-error').textContent =
+          '画面キャプチャはこの環境では利用できません';
+        return;
+      }
+      try {
+        const stream = await navigator.mediaDevices.getDisplayMedia({ video: true });
+        applyStream(stream);
+        hideSourceSelector();
+      } catch (err) {
+        // ユーザーキャンセル: ダイアログ維持（再選択を促す）
+        if (err.name !== 'NotAllowedError') {
+          document.getElementById('source-error').textContent =
+            'キャプチャに失敗しました: ' + err.message;
+        }
+      }
+    });
+
+    document.getElementById('btn-src-skip').addEventListener('click', hideSourceSelector);
+
+    document.getElementById('btn-video').addEventListener('click', () => {
+      stopCurrentStream();
+      const video = document.getElementById('video-bg');
+      video.srcObject = null;
+      video.style.display = 'none';
+      showSourceSelector();
+    });
+
     function resizeCanvases() {
       const w = window.innerWidth;
       const h = window.innerHeight;
@@ -554,6 +638,9 @@
 
     // === 右クリックメニューの無効化 ===
     document.addEventListener('contextmenu', e => e.preventDefault());
+
+    // === 起動時ソース選択 ===
+    showSourceSelector();
   </script>
 </body>
 </html>
