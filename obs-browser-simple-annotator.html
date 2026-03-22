@@ -316,8 +316,10 @@
         confirmedCtx.moveTo(x1, y1);
         confirmedCtx.lineTo(x2, y2);
         confirmedCtx.stroke();
-        confirmedCtx.shadowColor = 'transparent';
-        confirmedCtx.shadowBlur  = 0;
+        confirmedCtx.shadowColor   = 'transparent';
+        confirmedCtx.shadowBlur    = 0;
+        confirmedCtx.shadowOffsetX = 0;
+        confirmedCtx.shadowOffsetY = 0;
       }
     }
   </script>
