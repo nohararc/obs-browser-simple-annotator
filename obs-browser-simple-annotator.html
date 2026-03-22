@@ -299,6 +299,10 @@
         }
         input.addEventListener('input', onTextInput);
 
+        function cleanupText() {
+          input.removeEventListener('input',   onTextInput);
+          input.removeEventListener('blur',    cancelText);
+        }
         function commitText() {
           previewCtx.clearRect(0, 0, previewCanvas.width, previewCanvas.height);
           if (input.value.trim()) {
@@ -307,18 +311,19 @@
           }
           input.style.display = 'none';
           input.value = '';
-          input.removeEventListener('input', onTextInput);
+          cleanupText();
         }
         function cancelText() {
           previewCtx.clearRect(0, 0, previewCanvas.width, previewCanvas.height);
           input.style.display = 'none';
           input.value = '';
-          input.removeEventListener('input', onTextInput);
+          cleanupText();
         }
 
-        input.addEventListener('keydown', e => {
-          if (e.key === 'Enter')  { commitText(); }
-          if (e.key === 'Escape') { cancelText(); }
+        input.addEventListener('blur', cancelText);
+        input.addEventListener('keydown', ke => {
+          if (ke.key === 'Enter')  { commitText(); }
+          if (ke.key === 'Escape') { cancelText(); }
         }, { once: true });
       }
     });
