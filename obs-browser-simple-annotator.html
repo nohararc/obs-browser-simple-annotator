@@ -113,9 +113,72 @@
       pointer-events: none;
       z-index: 50;
     }
+    #video-bg {
+      position: fixed;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      z-index: 0;
+      display: none;
+      pointer-events: none;
+    }
+    #source-selector {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.75);
+      z-index: 300;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    #source-selector-dialog {
+      background: rgba(20, 20, 30, 0.97);
+      border: 1px solid rgba(255,255,255,0.15);
+      border-radius: 12px;
+      padding: 24px 28px;
+      width: 260px;
+      text-align: center;
+    }
+    #source-selector-dialog h3 {
+      color: #fff;
+      font-size: 15px;
+      font-family: sans-serif;
+      margin: 0 0 4px;
+    }
+    #source-selector-dialog p {
+      color: rgba(255,255,255,0.45);
+      font-size: 11px;
+      font-family: sans-serif;
+      margin: 0 0 16px;
+    }
+    .source-btn {
+      display: block;
+      width: 100%;
+      padding: 9px 12px;
+      margin-bottom: 8px;
+      border: none;
+      border-radius: 7px;
+      font-size: 13px;
+      font-family: sans-serif;
+      cursor: pointer;
+      color: #fff;
+    }
+    .source-btn:last-child { margin-bottom: 0; }
+    .source-btn-camera  { background: #2471a3; }
+    .source-btn-display { background: #1e8449; }
+    .source-btn-skip    { background: transparent; border: 1px solid rgba(255,255,255,0.18); color: rgba(255,255,255,0.5); font-size: 11px; }
+    #source-error {
+      color: #e74c3c;
+      font-size: 11px;
+      font-family: sans-serif;
+      margin: 8px 0 0;
+      min-height: 16px;
+    }
   </style>
 </head>
 <body>
+  <video id="video-bg" autoplay muted playsinline></video>
   <div id="canvas-container">
     <canvas id="confirmed-canvas"></canvas>
     <canvas id="preview-canvas"></canvas>
@@ -141,6 +204,8 @@
     <div class="palette-divider"></div>
     <button class="action-btn" id="btn-undo"  title="元に戻す (Z)">↩️</button>
     <button class="action-btn" id="btn-clear" title="全消去 (C)">🗑️</button>
+    <div class="palette-divider"></div>
+    <button class="action-btn" id="btn-video" title="映像ソース変更">📹</button>
   </div>
 
   <input id="text-input" type="text" autocomplete="off" spellcheck="false">
@@ -148,6 +213,18 @@
   <div id="shortcut-hint">
     1-5:色 &nbsp;|&nbsp; P:ペン &nbsp;|&nbsp; E:消しゴム &nbsp;|&nbsp; A:矢印 &nbsp;|&nbsp; T:テキスト &nbsp;|&nbsp; Z:戻す &nbsp;|&nbsp; C:消去
   </div>
+
+  <div id="source-selector">
+    <div id="source-selector-dialog">
+      <h3>映像ソースを選択</h3>
+      <p>キャンバスの背景映像を設定します</p>
+      <button class="source-btn source-btn-camera"  id="btn-src-camera">📷 カメラ / 仮想カメラ</button>
+      <button class="source-btn source-btn-display" id="btn-src-display">🖥 画面・ウィンドウ</button>
+      <button class="source-btn source-btn-skip"    id="btn-src-skip">映像なしで開始</button>
+      <div id="source-error"></div>
+    </div>
+  </div>
+
   <script>
     // canvas のサイズをウィンドウに合わせる
     const confirmedCanvas = document.getElementById('confirmed-canvas');
