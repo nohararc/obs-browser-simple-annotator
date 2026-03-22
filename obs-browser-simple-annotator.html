@@ -236,8 +236,11 @@
     });
 
     function onDrag(e) {
-      palette.style.left = (e.clientX - dragOffset.x) + 'px';
-      palette.style.top  = (e.clientY - dragOffset.y) + 'px';
+      const pr = palette.getBoundingClientRect();
+      const left = Math.max(0, Math.min(window.innerWidth  - pr.width,  e.clientX - dragOffset.x));
+      const top  = Math.max(0, Math.min(window.innerHeight - pr.height, e.clientY - dragOffset.y));
+      palette.style.left = left + 'px';
+      palette.style.top  = top  + 'px';
     }
 
     function stopDrag() {
