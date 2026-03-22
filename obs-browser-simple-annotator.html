@@ -252,6 +252,74 @@
         }));
       } catch (_) {}
     }
+
+    // === 描画の共通状態 ===
+    let isDrawing = false;
+    let lastX = 0, lastY = 0;
+
+    function getCanvasPos(e) {
+      const rect = previewCanvas.getBoundingClientRect();
+      return {
+        x: (e.clientX - rect.left) * (previewCanvas.width  / rect.width),
+        y: (e.clientY - rect.top)  * (previewCanvas.height / rect.height),
+      };
+    }
+
+    previewCanvas.addEventListener('mousedown', e => {
+      if (e.button !== 0) return;
+      const pos = getCanvasPos(e);
+
+      if (activeTool === 'pen' || activeTool === 'eraser') {
+        pushUndo();
+        isDrawing = true;
+        lastX = pos.x;
+        lastY = pos.y;
+        drawStroke(pos.x, pos.y, pos.x, pos.y);
+      }
+      // 矢印とテキストはTask 4・5で追加
+    });
+
+    previewCanvas.addEventListener('mousemove', e => {
+      if (!isDrawing) return;
+      if (activeTool !== 'pen' && activeTool !== 'eraser') return;
+      const pos = getCanvasPos(e);
+      drawStroke(lastX, lastY, pos.x, pos.y);
+      lastX = pos.x;
+      lastY = pos.y;
+    });
+
+    previewCanvas.addEventListener('mouseup',    stopStroke);
+    previewCanvas.addEventListener('mouseleave', stopStroke);
+    function stopStroke() { isDrawing = false; }
+
+    function drawStroke(x1, y1, x2, y2) {
+      if (activeTool === 'eraser') {
+        confirmedCtx.save();
+        confirmedCtx.globalCompositeOperation = 'destination-out';
+        confirmedCtx.lineWidth   = 20;
+        confirmedCtx.lineCap     = 'round';
+        confirmedCtx.beginPath();
+        confirmedCtx.moveTo(x1, y1);
+        confirmedCtx.lineTo(x2, y2);
+        confirmedCtx.stroke();
+        confirmedCtx.restore();
+      } else {
+        confirmedCtx.lineWidth    = 4;
+        confirmedCtx.lineCap      = 'round';
+        confirmedCtx.lineJoin     = 'round';
+        confirmedCtx.strokeStyle  = activeColor;
+        confirmedCtx.shadowColor  = 'rgba(0,0,0,0.5)';
+        confirmedCtx.shadowBlur   = 4;
+        confirmedCtx.shadowOffsetX = 1;
+        confirmedCtx.shadowOffsetY = 1;
+        confirmedCtx.beginPath();
+        confirmedCtx.moveTo(x1, y1);
+        confirmedCtx.lineTo(x2, y2);
+        confirmedCtx.stroke();
+        confirmedCtx.shadowColor = 'transparent';
+        confirmedCtx.shadowBlur  = 0;
+      }
+    }
   </script>
 </body>
 </html>
