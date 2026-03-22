@@ -284,13 +284,8 @@
         applyStream(stream);
         hideSourceSelector();
       } catch (err) {
-        if (err.name === 'NotAllowedError') {
-          // OBS環境またはユーザー拒否: 自動クローズ（設計上の割り切り）
-          hideSourceSelector();
-        } else {
-          document.getElementById('source-error').textContent =
-            'カメラが見つかりませんでした: ' + err.message;
-        }
+        // カメラアクセス失敗（権限拒否・デバイスなし・OBS環境等）は自動クローズ
+        hideSourceSelector();
       }
     });
 
