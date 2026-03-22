@@ -433,6 +433,32 @@
       ctx.fillText(text, x, y);
       ctx.restore();
     }
+
+    // === キーボードショートカット ===
+    document.addEventListener('keydown', e => {
+      // テキスト入力中は無視
+      if (document.getElementById('text-input').style.display === 'block') return;
+
+      const toolMap = { 'p': 'pen', 'e': 'eraser', 'a': 'arrow', 't': 'text' };
+      const colorMap = { '1': 0, '2': 1, '3': 2, '4': 3, '5': 4 };
+      const key = e.key.toLowerCase();
+
+      if (toolMap[key]) {
+        activeTool = toolMap[key];
+        document.querySelectorAll('.tool-btn').forEach(btn => {
+          btn.classList.toggle('active', btn.dataset.tool === activeTool);
+        });
+      } else if (colorMap[key] !== undefined) {
+        activeColor = COLORS[colorMap[key]];
+        document.querySelectorAll('.color-btn').forEach(btn => {
+          btn.classList.toggle('active', btn.dataset.color === activeColor);
+        });
+      } else if (key === 'z') {
+        undo();
+      } else if (key === 'c') {
+        clearAll();
+      }
+    });
   </script>
 </body>
 </html>
