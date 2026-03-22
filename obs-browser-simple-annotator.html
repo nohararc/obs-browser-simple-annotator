@@ -309,7 +309,7 @@
         pushUndo();
         drawArrow(confirmedCtx, lastX, lastY, pos.x, pos.y, activeColor);
       } else {
-        isDrawing = false;
+        isDrawing = false; // ペン・消しゴム: mouseup時も描画を終了する
       }
     });
 
