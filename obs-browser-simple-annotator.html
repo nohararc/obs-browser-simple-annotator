@@ -282,6 +282,45 @@
         lastY = pos.y;
         // Undoはmouseup時（確定後）に積む
       }
+      if (activeTool === 'text') {
+        const input = document.getElementById('text-input');
+        input.style.display = 'block';
+        input.style.left    = e.clientX + 'px';
+        input.style.top     = (e.clientY - 20) + 'px';
+        input.style.color   = activeColor;
+        input.value         = '';
+        input.focus();
+
+        function onTextInput() {
+          previewCtx.clearRect(0, 0, previewCanvas.width, previewCanvas.height);
+          if (input.value) {
+            drawText(previewCtx, input.value, pos.x, pos.y, activeColor);
+          }
+        }
+        input.addEventListener('input', onTextInput);
+
+        function commitText() {
+          previewCtx.clearRect(0, 0, previewCanvas.width, previewCanvas.height);
+          if (input.value.trim()) {
+            pushUndo();
+            drawText(confirmedCtx, input.value, pos.x, pos.y, activeColor);
+          }
+          input.style.display = 'none';
+          input.value = '';
+          input.removeEventListener('input', onTextInput);
+        }
+        function cancelText() {
+          previewCtx.clearRect(0, 0, previewCanvas.width, previewCanvas.height);
+          input.style.display = 'none';
+          input.value = '';
+          input.removeEventListener('input', onTextInput);
+        }
+
+        input.addEventListener('keydown', e => {
+          if (e.key === 'Enter')  { commitText(); }
+          if (e.key === 'Escape') { cancelText(); }
+        }, { once: true });
+      }
     });
 
     previewCanvas.addEventListener('mousemove', e => {
@@ -374,6 +413,19 @@
       );
       ctx.closePath();
       ctx.fill();
+      ctx.restore();
+    }
+
+    // テキストをcanvasに描く（アウトライン付き）
+    function drawText(ctx, text, x, y, color) {
+      ctx.save();
+      ctx.font         = '20px sans-serif';
+      ctx.fillStyle    = color;
+      ctx.strokeStyle  = 'rgba(0,0,0,0.8)';
+      ctx.lineWidth    = 3;
+      ctx.lineJoin     = 'round';
+      ctx.strokeText(text, x, y);
+      ctx.fillText(text, x, y);
       ctx.restore();
     }
   </script>
